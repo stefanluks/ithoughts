@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block page_style %}
+<style>
+
+</style>
+{% endblock %}
+
+{% block page %}
+<div class="my-2 posts p-2 rounded d-flex flex-column align-items-center justify-content-center">
+    <form action="." class="w-50 border rounded p-3 d-flex flex-column align-items-center" method="post">
+        <div class="fs-2 text-primary">LOGIN</div>
+        {{form.as_p}}
+        {% csrf_token %}
+        <button class="btn btn-primary w-100 my-2">Entrar</button>
+        <span>Não tem uma conta? <a href="{% url 'Cadastrar' %}" class="link">Criar conta</a></span>
+    </form> 
+</div>
+{% endblock %}
+
+{% block page_script %}
+
+<script>
+    window.onload = () => {
+        document.querySelectorAll("p").forEach(p => { p.className = "w-100 my-2"})
+        document.querySelectorAll("label").forEach(lb => { lb.className = "form-label w-100"})
+        document.querySelectorAll("input").forEach(input => { input.className = "form-control w-100"})
+    }
+</script>
+{% endblock %}

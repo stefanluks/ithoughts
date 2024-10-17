@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block page_style %}
+<style>
+    .post{
+        margin-bottom: 10px;
+    }
+    .no-decor{
+        text-decoration: none;
+    }
+    .alerta{
+        width: 80%;
+        height: 30px;
+        padding: 15px 0px;
+        position: fixed !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99;
+        top: -100px;
+        left: 50%;
+        transform: translate(-50%);
+        animation: normal 3s aparecer;
+    }
+
+    @keyframes aparecer {
+        0%, 100% {
+            top: -100px;
+        }
+        20%, 80%{
+            top: 100px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page %}
+<div class="w-100 d-flex flex-column border p-3 rounded">
+    <h1 class="text-primary fs-3">Qual seu pensamento do momento?</h1>
+    <form action="{% url 'PostagemView' %}" class="d-flex" method="post">
+        {% csrf_token %}
+        <input type="text" id="texto" name="texto" class="form-control" placeholder="Quero fazer um bolo!">
+        <button type="submit" id="btnPostar" class="btn btn-primary w-25 mx-2">POSTAR</button>
+    </form>
+</div>
+<div class="my-2 posts p-2 rounded">
+    <h3 class="text-primary fs-4">Postagens</h3>
+    {% for p in postagens %}
+    <div class="post my-3 border rounded">
+        <div class="header d-flex p-2 rounded w-100 text-start bg bg-dark d-flex align-items-center justify-content-between">
+            <div class="user d-flex">
+                <div class="nome text-light">{{p.autor.nome}}</div>
+                <a href="{% url 'Perfil' p.autor.user.username %}" class="user no-decor mx-1 text-secondary">@{{p.autor.user.username}}</a>
+            </div>
+            <a class="{% if request.user.is_authenticated %}like{% else %}no-like{% endif %} text-light mx-2 no-decor" id="{{p.pk}}-{{logado.id}}">
+                <i class="bi bi-heart"></i>
+            </a>
+        </div>
+        <div class="texto text-dark p-2">
+            {{p.blog.texto}}
+        </div>
+        <div class="comentarios">
+            <div class="show w-100 p-2 d-flex bg bg-secondary rounded text-light btn-coments align-items-center justify-content-between" id="{{p.pk}}">
+                <div class="left">
+                    <i class="bi bi-chat-left-fill"> {{p.QtdComentarios}}</i> Comentários
+                </div>
+                <div class="right mx-2">
+                    <i class="btn-coment bi bi-chevron-down" id="{{p.pk}}"></i>
+                </div>
+            </div>
+            <div id="coments-{{p.pk}}" class="coments" hidden>
+                <div class="lista" id="lista-{{p.pk}}">
+                    {% for c in p.comentarios.all %}
+                        <div class="comentario border rounded m-2">
+                            <div class="text-light rounded bg bg-secondary px-2 py-1">{{c.autor.nome}}</div>
+                            <div class="texto-coment p-2">{{c.texto}}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex">
+                    <input type="text" placeholder="Deixe um comentário..." class="form-control border-0" id="texto-coment-{{p.pk}}">
+                    <button class="btn btn-primary btn-comentar {% if not usuario.is_authenticated %}disabled {% endif %}" id="{{p.pk}}">Comentar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block page_script %}
+
+<script>
+    let btns = document.querySelectorAll(".btn-coment");
+    btns.forEach(btn => { btn.addEventListener("click", () => {
+        let id = "coments-"+btn.getAttribute("id");
+        if(btn.className == "btn-coment bi bi-chevron-down") btn.className = "btn-coment bi bi-chevron-up";
+        else btn.className = "btn-coment bi bi-chevron-down";
+        let comentarios = document.getElementById(id);
+        if(comentarios.hidden) comentarios.hidden = false;
+        else comentarios.hidden = true;
+    })});
+
+    let btnsComentar = document.querySelectorAll(".btn-comentar");
+    btnsComentar.forEach(btn => { btn.addEventListener("click", () => {
+        let id = btn.id;
+        let input = document.getElementById("texto-coment-"+id);
+        let url = window.location.href+"Comentar/"+id+"/?texto="+input.value;
+        fetch(url).then(data => {return data.json()}).then(json => {
+            let lista = document.getElementById("lista-"+id);
+            lista.appendChild(NovoComentario(json.comentario));
+            input.value = null;
+        });
+    })})
+
+    document.querySelectorAll(".like").forEach(btn => { btn.addEventListener("click", () => {
+        let ids = btn.id.split("-");
+        let url = window.location.href+"CurtirPost/"+ids[0]+"/"+ids[1];
+        let icone = btn.children[0];
+
+        if(icone.className =="bi bi-heart") btn.children[0].className = "bi bi-heart-fill";
+        else btn.children[0].className = "bi bi-heart";
+
+        fetch(url).then(data => {return data.json()}).then(json=> {
+            Alerta(json.msg);
+        })
+    })})
+
+    document.querySelectorAll(".no-like").forEach(btn => { btn.addEventListener("click", () => {
+        let id = btn.id;
+        alert("Faça login para continuar!!")
+    })})
+
+    function NovoComentario(obj){
+        let div = document.createElement("div");
+        div.className = "comentario border rounded m-2";
+        div.innerHTML = `
+            <div class="text-light rounded bg bg-secondary px-2 py-1">${obj.autor.nome}</div>
+            <div class="texto-coment p-2">${obj.texto}</div>
+        `;
+        return div;
+    }
+
+    function Alerta(msg){
+        let alerta = document.createElement("div");
+        alerta.className = "alerta alert alert-warning";
+        alerta.innerText = msg;
+        document.body.appendChild(alerta);
+        let tempo = setInterval(() => {
+            alerta.remove();
+            clearInterval(tempo);
+        }, 3000);
+    }
+</script>
+{% endblock %}
